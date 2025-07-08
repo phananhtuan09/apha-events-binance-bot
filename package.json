@@ -1,0 +1,14 @@
+{
+  "name": "apha-events-binance-bot",
+  "version": "1.0.0",
+  "description": "Bot thông báo airdrop/alpha events từ Binance Twitter.",
+  "main": "binance-square-monitor.js",
+  "scripts": {
+    "start": "node index.js",
+    "notify-post": "node binance-square-monitor.js"
+  },
+  "dependencies": {
+    "node-cron": "^3.0.3",
+    "puppeteer": "^24.12.0"
+  }
+}
