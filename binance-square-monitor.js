@@ -29,9 +29,9 @@ async function fetchLatestPosts() {
     );
     await page.goto(SQUARE_URL, {
       waitUntil: "networkidle0",
-      timeout: 60000,
+      timeout: 30000, // Giảm timeout từ 60s xuống 30s
     });
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    await new Promise((resolve) => setTimeout(resolve, 3000)); // Giảm từ 5s xuống 3s
     await page.evaluate(() => {
       const modals = document.querySelectorAll(
         '[class*="modal"], [class*="popup"], [class*="dialog"]'
@@ -94,13 +94,13 @@ async function fetchLatestPosts() {
   }
 }
 
-// Hàm scroll tự động để load thêm content
+// Hàm scroll tự động để load thêm content (tối ưu cho 2 phút)
 async function autoScroll(page) {
   await page.evaluate(async () => {
     let lastPostCount = 0;
     let sameCountTimes = 0;
-    const maxSameCountTimes = 5;
-    const maxScrolls = 100;
+    const maxSameCountTimes = 3; // Giảm từ 5 xuống 3
+    const maxScrolls = 20; // Giảm từ 100 xuống 20
     let scrollCount = 0;
     async function getPostCount() {
       const postElements = document.querySelectorAll(
@@ -110,7 +110,7 @@ async function autoScroll(page) {
     }
     while (scrollCount < maxScrolls) {
       window.scrollBy(0, window.innerHeight);
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Giảm từ 800ms xuống 500ms
       const currentCount = await getPostCount();
       if (currentCount === lastPostCount) {
         sameCountTimes++;
@@ -124,7 +124,7 @@ async function autoScroll(page) {
       }
     }
   });
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+  await new Promise((resolve) => setTimeout(resolve, 1000)); // Giảm từ 2000ms xuống 1000ms
 }
 
 // Hàm chính để show kết quả
@@ -185,11 +185,9 @@ async function checkBinanceSquare() {
       if (lower.includes("alpha") && lower.includes("airdrop")) {
         // Check trùng url
         if (!filePosts.some((p) => p.url === post.url)) {
-          filePosts.push(post);
+          filePosts.unshift(post); // Thêm vào đầu mảng thay vì cuối
           newCount++;
         }
-        // Log ra màn hình
-        const crawlTime = new Date().toLocaleString();
       }
     }
     await fs.writeFile(filePath, JSON.stringify(filePosts, null, 2), "utf8");
@@ -201,8 +199,8 @@ async function checkBinanceSquare() {
 
 // Chạy hàm chính
 checkBinanceSquare();
-// Định kỳ mỗi 5 phút
-cron.schedule("*/5 * * * *", checkBinanceSquare);
+// Định kỳ mỗi 2 phút
+cron.schedule("*/2 * * * *", checkBinanceSquare);
 
 console.log("🚀 Binance Square Monitor đã khởi động!");
-console.log("⏰ Sẽ kiểm tra mỗi 5 phút...");
+console.log("⏰ Sẽ kiểm tra mỗi 2 phút...");
