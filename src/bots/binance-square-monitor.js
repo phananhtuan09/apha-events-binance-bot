@@ -2,6 +2,7 @@ const puppeteer = require("puppeteer");
 const cron = require("node-cron");
 const fs = require("fs/promises");
 const path = require("path");
+const telegramService = require("../services/telegram-service");
 
 const SQUARE_URL = "https://www.binance.com/en/square/search?s=Alpha%20airdrop";
 
@@ -139,6 +140,7 @@ async function checkBinanceSquare() {
 
   // Chuẩn hóa postTime và lưu thêm trường postTimeParsed (Date object để sort)
   const now = new Date();
+  const oneDayMs = 24 * 60 * 60 * 1000;
   const postsWithParsedTime = posts.map((post) => {
     let parsed = post.postTime;
     let dateObj = now;
@@ -162,24 +164,29 @@ async function checkBinanceSquare() {
     }
     return { ...post, postTimeParsed: parsed, postTimeDate: dateObj };
   });
+  // Lọc chỉ lấy post trong vòng 1 ngày
+  const recentPosts = postsWithParsedTime.filter(
+    (post) => now - post.postTimeDate < oneDayMs
+  );
   // Sort theo postTimeDate mới nhất lên đầu
-  postsWithParsedTime.sort((a, b) => b.postTimeDate - a.postTimeDate);
+  recentPosts.sort((a, b) => b.postTimeDate - a.postTimeDate);
 
-  // Lưu kết quả vào file json theo ngày
-  const todayStr = now.toISOString().slice(0, 10); // yyyy-mm-dd
+  // Lưu kết quả vào file json duy nhất
   const notifyDir = path.join(__dirname, "notify-post");
-  const filePath = path.join(notifyDir, `${todayStr}.json`);
+  const filePath = path.join(notifyDir, `notify-post.json`);
   try {
     await fs.mkdir(notifyDir, { recursive: true });
     let filePosts = [];
-    try {
-      const fileContent = await fs.readFile(filePath, "utf8");
-      filePosts = JSON.parse(fileContent);
-    } catch (e) {
-      // file chưa tồn tại hoặc lỗi đọc, giữ filePosts = []
+    if (!isFirstRun) {
+      try {
+        const fileContent = await fs.readFile(filePath, "utf8");
+        filePosts = JSON.parse(fileContent);
+      } catch (e) {
+        // file chưa tồn tại hoặc lỗi đọc, giữ filePosts = []
+      }
     }
     let newCount = 0;
-    for (const post of postsWithParsedTime) {
+    for (const post of recentPosts) {
       const t = (post.title || "") + " " + (post.content || "");
       const lower = t.toLowerCase();
       if (lower.includes("alpha") && lower.includes("airdrop")) {
@@ -187,16 +194,36 @@ async function checkBinanceSquare() {
         if (!filePosts.some((p) => p.url === post.url)) {
           filePosts.unshift(post); // Thêm vào đầu mảng thay vì cuối
           newCount++;
+          // Gửi Telegram cho post mới
+          try {
+            await telegramService.sendSquarePostMessage(post);
+          } catch (err) {
+            console.error("Lỗi gửi Telegram:", err.message);
+          }
         }
       }
     }
-    await fs.writeFile(filePath, JSON.stringify(filePosts, null, 2), "utf8");
-    console.log(`\nĐã lưu ${newCount} post mới vào ${filePath}`);
+    // Nếu là lần chạy đầu tiên, clear file (ghi đè toàn bộ recentPosts)
+    if (isFirstRun) {
+      await fs.writeFile(
+        filePath,
+        JSON.stringify(recentPosts, null, 2),
+        "utf8"
+      );
+      isFirstRun = false;
+      console.log(
+        `\nĐã clear và lưu ${recentPosts.length} post vào ${filePath}`
+      );
+    } else {
+      await fs.writeFile(filePath, JSON.stringify(filePosts, null, 2), "utf8");
+      console.log(`\nĐã lưu ${newCount} post mới vào ${filePath}`);
+    }
   } catch (err) {
     console.error("Lỗi khi lưu file notify:", err.message);
   }
 }
 
+let isFirstRun = true;
 // Chạy hàm chính
 checkBinanceSquare();
 // Định kỳ mỗi 2 phút
