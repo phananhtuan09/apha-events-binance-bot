@@ -189,14 +189,24 @@ async function checkBinanceSquare() {
     for (const post of recentPosts) {
       const t = (post.title || "") + " " + (post.content || "");
       const lower = t.toLowerCase();
+      let type = null;
       if (lower.includes("alpha") && lower.includes("airdrop")) {
+        type = "airdrop";
+      } else if (
+        lower.includes("alpha") &&
+        (lower.includes("listed") || lower.includes("trading opens"))
+      ) {
+        type = "listing";
+      }
+      if (type) {
+        const postWithType = { ...post, type };
         // Check trùng url
         if (!filePosts.some((p) => p.url === post.url)) {
-          filePosts.unshift(post); // Thêm vào đầu mảng thay vì cuối
+          filePosts.unshift(postWithType); // Thêm vào đầu mảng thay vì cuối
           newCount++;
           // Gửi Telegram cho post mới
           try {
-            await telegramService.sendSquarePostMessage(post);
+            await telegramService.sendSquarePostMessage(postWithType);
           } catch (err) {
             console.error("Lỗi gửi Telegram:", err.message);
           }

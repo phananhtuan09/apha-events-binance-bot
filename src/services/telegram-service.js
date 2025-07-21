@@ -13,7 +13,20 @@ function createSquarePostMessage(post) {
       : post.content
     : "N/A";
 
-  const message = `🔔 *Post mới từ Binance Square*
+  let titlePrefix = "[Info]";
+  let hashTags = "#BinanceSquare";
+  let icon = "🔔";
+  if (post.type === "airdrop") {
+    titlePrefix = "[Airdrop]";
+    hashTags = "#BinanceSquare #AlphaAirdrop";
+    icon = "🎁";
+  } else if (post.type === "listing") {
+    titlePrefix = "[Listing]";
+    hashTags = "#BinanceSquare #TokenListing";
+    icon = "🚀";
+  }
+
+  const message = `${icon} *${titlePrefix}*
 
 📰 *Tiêu đề:* ${post.title || "N/A"}
 ⏰ *Thời gian:* ${post.postTime || "N/A"}
@@ -22,7 +35,7 @@ function createSquarePostMessage(post) {
 📝 *Nội dung:*
 ${truncatedContent}
 
-#BinanceSquare #AlphaAirdrop`;
+${hashTags}`;
 
   return message;
 }
