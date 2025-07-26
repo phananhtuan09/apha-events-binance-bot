@@ -192,11 +192,6 @@ async function checkBinanceSquare() {
       let type = null;
       if (lower.includes("alpha") && lower.includes("airdrop")) {
         type = "airdrop";
-      } else if (
-        lower.includes("alpha") &&
-        (lower.includes("listed") || lower.includes("trading opens"))
-      ) {
-        type = "listing";
       }
       if (type) {
         const postWithType = { ...post, type };
