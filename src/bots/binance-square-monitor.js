@@ -190,7 +190,11 @@ async function checkBinanceSquare() {
       const t = (post.title || "") + " " + (post.content || "");
       const lower = t.toLowerCase();
       let type = null;
-      if (lower.includes("alpha") && lower.includes("airdrop")) {
+      if (
+        lower.includes("alpha") &&
+        lower.includes("airdrop") &&
+        lower.includes("eligible")
+      ) {
         type = "airdrop";
       }
       if (type) {
